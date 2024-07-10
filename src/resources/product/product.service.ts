@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PrismaService } from 'src/commons/services/prisma.service';
 
 @Injectable()
 export class ProductService {
+  constructor(private readonly prismaService: PrismaService){}
+
   create(createProductDto: CreateProductDto) {
-    return 'This action adds a new product';
+    return this.prismaService.product.create({
+      data: createProductDto
+    })
   }
 
   findAll() {
@@ -16,8 +21,28 @@ export class ProductService {
     return `This action returns a #${id} product`;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    //check if product exist
+
+    const existingProduct = await this.prismaService.product.findUnique({
+      where: {
+        id
+      }
+    })
+    if (!existingProduct) {
+      throw new HttpException("Le produit n'existe pas !", HttpStatus.NOT_FOUND)
+    }
+    return this.prismaService.product.update({
+      data:{
+        name: updateProductDto.name || existingProduct.name,
+        price: updateProductDto.price || existingProduct.price,
+        quantity: updateProductDto.quantity || existingProduct.quantity,
+        description: updateProductDto.description || existingProduct.description
+      },
+      where:{
+        id
+      }
+    })
   }
 
   remove(id: number) {
