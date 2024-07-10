@@ -13,12 +13,22 @@ export class ProductService {
     })
   }
 
-  findAll() {
-    return `This action returns all product`;
+  //filters
+  // {
+  //   orderBy: [
+  //     { createdAt: "desc"}
+  //   ]
+  // }
+  async findAll() {
+    return this.prismaService.product.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(id: number) {
+    return this.prismaService.product.findUnique({
+      where:{
+        id
+      }
+    });
   }
 
   async update(id: number, updateProductDto: UpdateProductDto) {
@@ -45,7 +55,21 @@ export class ProductService {
     })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(id: number) {
+    //check if product exist
+
+    const existingProduct = await this.prismaService.product.findUnique({
+      where: {
+        id
+      }
+    })
+    if (!existingProduct) {
+      throw new HttpException("Le produit n'existe pas !", HttpStatus.NOT_FOUND)
+    }
+    return this.prismaService.product.delete({
+      where:{
+        id
+      }
+    })
   }
 }
