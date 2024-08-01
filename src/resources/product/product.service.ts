@@ -6,10 +6,23 @@ import { PrismaService } from 'src/commons/services/prisma.service';
 @Injectable()
 export class ProductService {
   constructor(private readonly prismaService: PrismaService){}
+  
+  async create(createProductDto: CreateProductDto) {
+    const existingCategory = await this.prismaService.category.findUnique({
+      where:  {
+        id: createProductDto.category_id
+      }
+    })
 
-  create(createProductDto: CreateProductDto) {
+    if (!existingCategory) {
+      throw new HttpException("La categorie n'existe pas", HttpStatus.NOT_FOUND)
+    }
+
     return this.prismaService.product.create({
-      data: createProductDto
+      data: createProductDto,
+      include: {
+        category: true
+      }
     })
   }
 
@@ -20,13 +33,24 @@ export class ProductService {
   //   ]
   // }
   async findAll() {
-    return this.prismaService.product.findMany();
+    return this.prismaService.product.findMany({
+      orderBy: [
+             { createdAt: "desc"}
+      ],
+      include: {
+        category: true
+      }
+
+    });
   }
 
   async findOne(id: number) {
     return this.prismaService.product.findUnique({
       where:{
         id
+      },
+      include: {
+        category: true
       }
     });
   }
@@ -42,15 +66,36 @@ export class ProductService {
     if (!existingProduct) {
       throw new HttpException("Le produit n'existe pas !", HttpStatus.NOT_FOUND)
     }
+
+    let category_id = existingProduct.category_id
+
+    if (updateProductDto.category_id) {
+
+      const existingCategory = await this.prismaService.category.findUnique({
+        where:  {
+          id: updateProductDto.category_id
+        }
+      })
+  
+      if (!existingCategory) {
+        throw new HttpException("La categorie n'existe pas", HttpStatus.NOT_FOUND)
+      }
+      category_id = updateProductDto.category_id
+    }
+
     return this.prismaService.product.update({
       data:{
         name: updateProductDto.name || existingProduct.name,
         price: updateProductDto.price || existingProduct.price,
         quantity: updateProductDto.quantity || existingProduct.quantity,
-        description: updateProductDto.description || existingProduct.description
+        description: updateProductDto.description || existingProduct.description,
+        category_id: category_id
       },
       where:{
         id
+      },
+      include: {
+        category: true
       }
     })
   }
